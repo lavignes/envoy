@@ -31,16 +31,12 @@ class MockMetadataFetcher {
 public:
   virtual ~MockMetadataFetcher() = default;
 
-  MOCK_CONST_METHOD3(fetch, absl::optional<std::string>(const std::string&, const std::string&,
-                                                        const absl::optional<std::string>&));
+  MOCK_CONST_METHOD1(fetch, absl::optional<std::string>(Http::Message&));
 };
 
 class DummyMetadataFetcher {
 public:
-  absl::optional<std::string> operator()(const std::string&, const std::string&,
-                                         const absl::optional<std::string>&) {
-    return absl::nullopt;
-  }
+  absl::optional<std::string> operator()(Http::Message&) { return absl::nullopt; }
 };
 
 } // namespace Aws

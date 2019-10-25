@@ -186,3 +186,18 @@ envoy_cmake_external(
         "//conditions:default": ["libz.a"],
     }),
 )
+
+envoy_cmake_external(
+    name = "tinyxml2",
+    cache_entries = {
+        "BUILD_SHARED_LIBS": "off",
+        "BUILD_STATIC_LIBS": "on",
+        "BUILD_TESTS": "off",
+        "CMAKE_CXX_COMPILER_FORCED": "on",
+    },
+    lib_source = "@com_github_leethomason_tinyxml2//:all",
+    static_libraries = select({
+        "//bazel:windows_x86_64": ["tinyxml2.lib"],
+        "//conditions:default": ["libtinyxml2.a"],
+    }),
+)

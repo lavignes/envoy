@@ -130,6 +130,7 @@ def envoy_dependencies(skip_targets = []):
     _com_github_gperftools_gperftools()
     _com_github_grpc_grpc()
     _com_github_jbeder_yaml_cpp()
+    _com_github_leethomason_tinyxml2()
     _com_github_libevent_libevent()
     _com_github_luajit_luajit()
     _com_github_nanopb_nanopb()
@@ -297,6 +298,18 @@ def _com_github_jbeder_yaml_cpp():
     native.bind(
         name = "yaml_cpp",
         actual = "@envoy//bazel/foreign_cc:yaml",
+    )
+
+def _com_github_leethomason_tinyxml2():
+    location = REPOSITORY_LOCATIONS["com_github_leethomason_tinyxml2"]
+    http_archive(
+        name = "com_github_leethomason_tinyxml2",
+        build_file_content = BUILD_ALL_CONTENT,
+        **location
+    )
+    native.bind(
+        name = "tinyxml2",
+        actual = "@envoy//bazel/foreign_cc:tinyxml2",
     )
 
 def _com_github_libevent_libevent():

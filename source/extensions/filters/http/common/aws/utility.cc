@@ -88,41 +88,57 @@ Utility::joinCanonicalHeaderNames(const std::map<std::string, std::string>& cano
   });
 }
 
+std::string Utility::getSTSEndpoint(absl::string_view region) {
+  if (region == "cn-northwest-1" || region == "cn-north-1") {
+    return fmt::format("sts.{}.amazonaws.com.cn", region);
+  }
+  return fmt::format("sts.{}.amazonaws.com", region);
+}
+
 static size_t curlCallback(char* ptr, size_t, size_t nmemb, void* data) {
   auto buf = static_cast<std::string*>(data);
   buf->append(ptr, nmemb);
   return nmemb;
 }
 
-absl::optional<std::string> Utility::metadataFetcher(const std::string& host,
-                                                     const std::string& path,
-                                                     const std::string& auth_token) {
+absl::optional<std::string> Utility::fetchMetadata(Http::Message& message) {
+  // TODO(lavignes): Should remove this util in favor of custom client like
+  // Envoy::Http::RestApiFetcher
   static const size_t MAX_RETRIES = 4;
   static const std::chrono::milliseconds RETRY_DELAY{1000};
   static const std::chrono::seconds TIMEOUT{5};
-
   CURL* const curl = curl_easy_init();
-  if (!curl) {
-    return absl::nullopt;
-  };
+  RELEASE_ASSERT(curl != nullptr, "");
+  const auto host = message.headers().Host()->value().getStringView();
+  const auto path = message.headers().Path()->value().getStringView();
+  const auto scheme = message.headers().Scheme()->value().getStringView();
 
-  const std::string url = fmt::format("http://{}/{}", host, path);
+  const std::string url = fmt::format("{}://{}{}", scheme, host, path);
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, TIMEOUT.count());
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
   std::string buffer;
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlCallback);
 
   struct curl_slist* headers = nullptr;
-  if (!auth_token.empty()) {
-    const std::string auth = fmt::format("Authorization: {}", auth_token);
-    headers = curl_slist_append(headers, auth.c_str());
+  message.headers().iterate(
+      [](const Http::HeaderEntry& entry, void* context) -> Http::HeaderMap::Iterate {
+        auto** headers = static_cast<struct curl_slist**>(context);
+        // Skip pseudo-headers
+        if (!entry.key().getStringView().empty() && entry.key().getStringView()[0] == ':') {
+          return Http::HeaderMap::Iterate::Continue;
+        }
+        const std::string header =
+            fmt::format("{}: {}", entry.key().getStringView(), entry.value().getStringView());
+        *headers = curl_slist_append(*headers, header.c_str());
+        return Http::HeaderMap::Iterate::Continue;
+      },
+      &headers);
+  if (headers != nullptr) {
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   }
-
   for (size_t retry = 0; retry < MAX_RETRIES; retry++) {
     const CURLcode res = curl_easy_perform(curl);
     if (res == CURLE_OK) {
@@ -135,7 +151,6 @@ absl::optional<std::string> Utility::metadataFetcher(const std::string& host,
 
   curl_easy_cleanup(curl);
   curl_slist_free_all(headers);
-
   return buffer.empty() ? absl::nullopt : absl::optional<std::string>(buffer);
 }
 

@@ -43,7 +43,7 @@ using SignatureConstants = ConstSingleton<SignatureConstantValues>;
  * Implementation of the Signature V4 signing process.
  * See https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
  */
-class SignerImpl : public Signer, public Logger::Loggable<Logger::Id::http> {
+class SignerImpl : public Signer, public Logger::Loggable<Logger::Id::aws> {
 public:
   SignerImpl(absl::string_view service_name, absl::string_view region,
              const CredentialsProviderSharedPtr& credentials_provider, TimeSource& time_source)

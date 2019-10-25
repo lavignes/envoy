@@ -43,11 +43,12 @@ std::shared_ptr<grpc::ChannelCredentials> AwsIamGrpcCredentialsFactory::getChann
         const auto& config = Envoy::MessageUtil::downcastAndValidate<
             const envoy::config::grpc_credential::v2alpha::AwsIamConfig&>(
             *config_message, ProtobufMessage::getNullValidationVisitor());
+        const auto region = getRegion(config);
         auto credentials_provider =
             std::make_shared<HttpFilters::Common::Aws::DefaultCredentialsProviderChain>(
-                api, HttpFilters::Common::Aws::Utility::metadataFetcher);
+                api, region, HttpFilters::Common::Aws::Utility::fetchMetadata);
         auto signer = std::make_unique<HttpFilters::Common::Aws::SignerImpl>(
-            config.service_name(), getRegion(config), credentials_provider, api.timeSource());
+            config.service_name(), region, credentials_provider, api.timeSource());
         std::shared_ptr<grpc::CallCredentials> new_call_creds = grpc::MetadataCredentialsFromPlugin(
             std::make_unique<AwsIamHeaderAuthenticator>(std::move(signer)));
         if (call_creds == nullptr) {

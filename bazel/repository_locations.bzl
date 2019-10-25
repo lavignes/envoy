@@ -168,6 +168,11 @@ REPOSITORY_LOCATIONS = dict(
         strip_prefix = "yaml-cpp-yaml-cpp-0.6.3",
         urls = ["https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.3.tar.gz"],
     ),
+    com_github_leethomason_tinyxml2 = dict(
+        sha256 = "68ebd396a4220d5a9b5a621c6e9c66349c5cfdf5efaea3f16e3bb92e45f4e2a3",
+        strip_prefix = "tinyxml2-7.1.0",
+        urls = ["https://github.com/leethomason/tinyxml2/archive/7.1.0.tar.gz"],
+    ),
     com_github_msgpack_msgpack_c = dict(
         sha256 = "fbaa28c363a316fd7523f31d1745cf03eab0d1e1ea5a1c60aa0dffd4ce551afe",
         strip_prefix = "msgpack-3.2.0",

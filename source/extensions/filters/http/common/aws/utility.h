@@ -1,5 +1,7 @@
 #pragma once
 
+#include "envoy/http/message.h"
+
 #include "common/http/headers.h"
 
 namespace Envoy {
@@ -41,11 +43,17 @@ public:
   joinCanonicalHeaderNames(const std::map<std::string, std::string>& canonical_headers);
 
   /**
+   * Get the Security Token Service endpoint for a given region: sts.<region>.amazonaws.com
+   * See: https://docs.aws.amazon.com/general/latest/gr/rande.html#sts_region
+   * @param region An AWS region.
+   * @return an endpoint.
+   */
+  static std::string getSTSEndpoint(absl::string_view region);
+
+  /**
    * Fetch AWS instance or task metadata.
    *
-   * @param host host or ip address of the metadata endpoint.
-   * @param path path of the metadata document.
-   * @auth_token authentication token to pass in the request, empty string indicates no auth.
+   * @param message An HTTP request.
    * @return Metadata document or nullopt in case if unable to fetch it.
    *
    * @note In case of an error, function will log ENVOY_LOG_MISC(debug) message.
@@ -53,8 +61,7 @@ public:
    * @note This is not main loop safe method as it is blocking. It is intended to be used from the
    * gRPC auth plugins that are able to schedule blocking plugins on a different thread.
    */
-  static absl::optional<std::string>
-  metadataFetcher(const std::string& host, const std::string& path, const std::string& auth_token);
+  static absl::optional<std::string> fetchMetadata(Http::Message& message);
 };
 
 } // namespace Aws
