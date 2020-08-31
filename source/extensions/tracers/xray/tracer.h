@@ -29,13 +29,15 @@ public:
   /**
    * Creates a new Span.
    *
-   * @param time_source A time source to create Span IDs using the monotonic clock.
+   * @param time_source A time source to get the span end time
+   * @param random random generator for generating unique child span ids
    * @param broker Facilitates communication with the X-Ray daemon.
    */
-  Span(TimeSource& time_source, DaemonBroker& broker)
-      : time_source_(time_source), broker_(broker), sampled_(true) {}
+  Span(TimeSource& time_source, Runtime::RandomGenerator& random, DaemonBroker& broker)
+      : time_source_(time_source), random_(random), broker_(broker),
+        id_(Hex::uint64ToHex(random_.random())), sampled_(true) {}
 
-  /**
+  /**e
    * Sets the Span's trace ID.
    */
   void setTraceId(absl::string_view trace_id) { trace_id_ = std::string(trace_id); };
@@ -110,14 +112,6 @@ public:
   void setStartTime(Envoy::SystemTime start_time) { start_time_ = start_time; }
 
   /**
-   * Sets the Span ID.
-   * This ID is used as the (sub)segment ID.
-   * A single Trace can have Multiple segments and each segment can have multiple sub-segments.
-   * The id is converted to a hexadecimal string internally.
-   */
-  void setId(uint64_t id);
-
-  /**
    * Marks the span as either "sampled" or "not-sampled".
    * By default, Spans are "sampled".
    * This is handy in cases where the sampling decision has already been determined either by Envoy
@@ -167,6 +161,9 @@ public:
                               Envoy::SystemTime start_time) override;
 
 private:
+  Envoy::TimeSource& time_source_;
+  Runtime::RandomGenerator& random_;
+  DaemonBroker& broker_;
   Envoy::SystemTime start_time_;
   std::string operation_name_;
   std::string id_;
@@ -178,8 +175,6 @@ private:
   absl::flat_hash_map<std::string, ProtobufWkt::Value> http_request_annotations_;
   absl::flat_hash_map<std::string, ProtobufWkt::Value> http_response_annotations_;
   absl::flat_hash_map<std::string, std::string> custom_annotations_;
-  Envoy::TimeSource& time_source_;
-  DaemonBroker& broker_;
   bool sampled_;
 };
 
@@ -189,9 +184,9 @@ class Tracer {
 public:
   Tracer(absl::string_view segment_name, absl::string_view origin,
          const absl::flat_hash_map<std::string, ProtobufWkt::Value>& aws_metadata,
-         DaemonBrokerPtr daemon_broker, TimeSource& time_source)
+         DaemonBrokerPtr daemon_broker, TimeSource& time_source, Runtime::RandomGenerator& random)
       : segment_name_(segment_name), origin_(origin), aws_metadata_(aws_metadata),
-        daemon_broker_(std::move(daemon_broker)), time_source_(time_source) {}
+        daemon_broker_(std::move(daemon_broker)), time_source_(time_source), random_(random) {}
   /**
    * Starts a tracing span for X-Ray
    */
@@ -211,6 +206,7 @@ private:
   const absl::flat_hash_map<std::string, ProtobufWkt::Value> aws_metadata_;
   const DaemonBrokerPtr daemon_broker_;
   Envoy::TimeSource& time_source_;
+  Runtime::RandomGenerator& random_;
 };
 
 using TracerPtr = std::unique_ptr<Tracer>;
