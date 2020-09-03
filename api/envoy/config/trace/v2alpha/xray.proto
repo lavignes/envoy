@@ -5,6 +5,8 @@ package envoy.config.trace.v2alpha;
 import "envoy/api/v2/core/address.proto";
 import "envoy/api/v2/core/base.proto";
 
+import "google/protobuf/struct.proto";
+
 import "udpa/annotations/status.proto";
 import "validate/validate.proto";
 
@@ -17,6 +19,15 @@ option (udpa.annotations.file_status).package_version_status = FROZEN;
 // Configuration for AWS X-Ray tracer
 
 message XRayConfig {
+  message SegmentFields {
+    // The type of AWS resource, e.g. "AWS::AppMesh::Proxy".
+    string origin = 1;
+
+    // AWS resource metadata dictionary.
+    // See: `X-Ray Segment Document documentation <https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html#api-segmentdocuments-aws>`__
+    google.protobuf.Struct aws = 2;
+  }
+
   // The UDP endpoint of the X-Ray Daemon where the spans will be sent.
   // If this value is not set, the default value of 127.0.0.1:2000 will be used.
   api.v2.core.SocketAddress daemon_endpoint = 1;
@@ -29,4 +40,9 @@ message XRayConfig {
   // `X-Ray SDK documentation
   // <https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-go-configuration.html#xray-sdk-go-configuration-sampling>`_
   api.v2.core.DataSource sampling_rule_manifest = 3;
+
+  // Optional custom fields to be added to each trace segment.
+  // see: `X-Ray Segment Document documentation
+  // <https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html>`__
+  SegmentFields segment_fields = 4;
 }
